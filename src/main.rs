@@ -1,23 +1,23 @@
-use bendy::decoding::{Decoder, Object};
-use std::{fs, str};
+mod torrent;
+mod udp;
 
-fn main() {
-    match Decoder::new(&fs::read("big-buck-bunny.torrent").unwrap())
-        .next_object()
-        .unwrap()
-    {
-        None => (),
-        Some(Object::List(d)) => println!("{:?}", d),
-        Some(Object::Dict(mut d)) => {
+use bendy::decoding::{FromBencode}; 
+use std::{fs};
 
-            while let Ok(Some(pair)) = d.next_pair() {
-                match pair {
-                    (b"announce", Object::Bytes(a)) => println!("{:?}", str::from_utf8(a)),
-                    _ => ()
+use crate::torrent::Torrent;
+
+#[tokio::main]
+async fn main() {
+    match fs::read("big-buck-bunny.torrent") {
+        Ok(file) => {
+            match Torrent::from_bencode(&file) {
+                Ok(torrent) => {
+                    let _data = udp::attempt_download(&torrent).await;
+                }
+                _ => {
                 }
             }
         }
-        Some(Object::Integer(d)) => println!("{:?}", d),
-        Some(Object::Bytes(d)) => println!("{:?}", d),
-    }
+        _ => ()
+    };
 }
